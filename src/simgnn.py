@@ -9,11 +9,13 @@ from torch_geometric.nn import GCNConv
 from layers import AttentionModule, TenorNetworkModule
 from utils import process_pair, calculate_loss, calculate_normalized_ged
 
+
 class SimGNN(torch.nn.Module):
     """
     SimGNN: A Neural Network Approach to Fast Graph Similarity Computation
     https://arxiv.org/abs/1808.05689
     """
+
     def __init__(self, args, number_of_labels):
         """
         :param args: Arguments object.
@@ -57,7 +59,7 @@ class SimGNN(torch.nn.Module):
         scores = torch.mm(abstract_features_1, abstract_features_2).detach()
         scores = scores.view(-1, 1)
         hist = torch.histc(scores, bins=self.args.bins)
-        hist = hist/torch.sum(hist)
+        hist = hist / torch.sum(hist)
         hist = hist.view(1, -1)
         return hist
 
@@ -113,10 +115,12 @@ class SimGNN(torch.nn.Module):
         score = torch.sigmoid(self.scoring_layer(scores))
         return score
 
+
 class SimGNNTrainer(object):
     """
     SimGNN model trainer.
     """
+
     def __init__(self, args):
         """
         :param args: Arguments object.
@@ -145,7 +149,7 @@ class SimGNNTrainer(object):
             self.global_labels = self.global_labels.union(set(data["labels_1"]))
             self.global_labels = self.global_labels.union(set(data["labels_2"]))
         self.global_labels = sorted(self.global_labels)
-        self.global_labels = {val:index  for index, val in enumerate(self.global_labels)}
+        self.global_labels = {val: index for index, val in enumerate(self.global_labels)}
         self.number_of_labels = len(self.global_labels)
 
     def create_batches(self):
@@ -156,7 +160,7 @@ class SimGNNTrainer(object):
         random.shuffle(self.training_graphs)
         batches = []
         for graph in range(0, len(self.training_graphs), self.args.batch_size):
-            batches.append(self.training_graphs[graph:graph+self.args.batch_size])
+            batches.append(self.training_graphs[graph:graph + self.args.batch_size])
         return batches
 
     def transfer_to_torch(self, data):
@@ -191,7 +195,7 @@ class SimGNNTrainer(object):
         new_data["features_1"] = features_1
         new_data["features_2"] = features_2
 
-        norm_ged = data["ged"]/(0.5*(len(data["labels_1"])+len(data["labels_2"])))
+        norm_ged = data["ged"] / (0.5 * (len(data["labels_1"]) + len(data["labels_2"])))
 
         new_data["target"] = torch.from_numpy(np.exp(-norm_ged).reshape(1, 1)).view(-1).float()
         return new_data
@@ -235,7 +239,7 @@ class SimGNNTrainer(object):
                 loss_score = self.process_batch(batch)
                 main_index = main_index + len(batch)
                 self.loss_sum = self.loss_sum + loss_score * len(batch)
-                loss = self.loss_sum/main_index
+                loss = self.loss_sum / main_index
                 epochs.set_description("Epoch (Loss=%g)" % round(loss, 5))
 
     def score(self):
@@ -260,10 +264,10 @@ class SimGNNTrainer(object):
         Printing the error rates.
         """
         norm_ged_mean = np.mean(self.ground_truth)
-        base_error = np.mean([(n-norm_ged_mean)**2 for n in self.ground_truth])
+        base_error = np.mean([(n - norm_ged_mean) ** 2 for n in self.ground_truth])
         model_error = np.mean(self.scores)
-        print("\nBaseline error: " +str(round(base_error, 5))+".")
-        print("\nModel test error: " +str(round(model_error, 5))+".")
+        print("\nBaseline error: " + str(round(base_error, 5)) + ".")
+        print("\nModel test error: " + str(round(model_error, 5)) + ".")
 
     def save(self):
         torch.save(self.model.state_dict(), self.args.save_path)
